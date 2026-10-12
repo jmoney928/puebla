@@ -1,0 +1,15 @@
+/* Site shell: header with papel picado + section tabs */
+html,body{min-height:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+img{max-width:100%}
+[hidden]{display:none!important}
+.site-head{max-width:1180px;margin:0 auto;padding-inline:20px}
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:10px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--display);font-weight:900;font-size:26px;text-transform:uppercase;text-decoration:none;color:var(--ink);letter-spacing:.01em}
+.brand span{color:var(--rosa)}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px}
+.tab{font:600 14px var(--body);color:var(--muted);text-decoration:none;padding:7px 16px;border-radius:999px}
+.tab:hover{color:var(--ink)}
+.tab[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.tab:focus-visible,.brand:focus-visible{outline:2px solid var(--rosa);outline-offset:2px}
+@media (max-width:480px){.site-head{padding-inline:16px}.tab{padding:7px 12px}}
