@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { PEOPLE } from "@/lib/people";
-import { api, type Session } from "@/lib/client";
+import { api } from "@/lib/client";
+import type { Session } from "./Journal";
 
 export default function Gate({ onEnter, notice }: { onEnter: (s: Session) => void; notice: string | null }) {
   const [user, setUser] = useState<string>("");
@@ -16,8 +17,8 @@ export default function Gate({ onEnter, notice }: { onEnter: (s: Session) => voi
     setBusy(true);
     setError(null);
     try {
-      await api("/api/auth", { user, pass }, { method: "POST" });
-      onEnter({ user, pass });
+      await api("/api/auth", { method: "POST", body: { user, pass } });
+      onEnter({ user });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn’t sign in.");
     } finally {
@@ -29,7 +30,7 @@ export default function Gate({ onEnter, notice }: { onEnter: (s: Session) => voi
     <section className="gate">
       <div className="eyebrow">Journal</div>
       <h1>Diario</h1>
-      <p className="lede">For the four of us only. Pick your name and enter the trip passcode. This device will remember you.</p>
+      <p className="lede">For the four of us only. Pick your name and enter the trip passcode. This phone will remember you.</p>
       <form onSubmit={submit} className="gateform">
         <fieldset>
           <legend>Who are you?</legend>

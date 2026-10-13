@@ -1,47 +1,52 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PEOPLE, TRIP_DAYS } from "@/lib/people";
-import { ApiError, api, loadSession, saveSession, tripToday, type Comment, type Entry, type Session } from "@/lib/client";
+import { ApiError, api, tripToday, type Comment, type JournalData } from "@/lib/client";
 import Gate from "./Gate";
 import Composer from "./Composer";
 import EntryCard from "./EntryCard";
 import Lightbox from "./Lightbox";
 
-type Data = { entries: Entry[]; comments: Comment[] };
+export type Session = { user: string };
 
 export default function Journal() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
-  const [data, setData] = useState<Data | null>(null);
+  const [data, setData] = useState<JournalData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [day, setDay] = useState<string>("all");
   const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
+  const version = useRef(-1);
+
+  // Polls read a cached copy that can lag a write by up to a minute, so never step back to an older version.
+  const apply = useCallback((d: JournalData) => {
+    if (d.version >= version.current) { version.current = d.version; setData(d); }
+  }, []);
 
   useEffect(() => {
-    setSession(loadSession());
     const today = tripToday();
     if (today) setDay(today);
-    setReady(true);
+    api<{ user: string | null }>("/api/auth")
+      .then((r) => setSession(r.user ? { user: r.user } : null))
+      .catch((e) => setError(e instanceof Error ? e.message : "Couldn’t reach the server."))
+      .finally(() => setReady(true));
   }, []);
 
-  const refresh = useCallback(async (s: Session) => {
+  const refresh = useCallback(async () => {
     try {
-      setData(await api<Data>("/api/journal", s));
+      apply(await api<JournalData>("/api/journal"));
       setError(null);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        saveSession(null);
-        setSession(null);
-      }
+      if (e instanceof ApiError && e.status === 401) setSession(null);
       setError(e instanceof Error ? e.message : "Couldn’t load the journal.");
     }
-  }, []);
+  }, [apply]);
 
   useEffect(() => {
     if (!session) return;
-    refresh(session);
-    const tick = () => document.visibilityState === "visible" && refresh(session);
-    const id = window.setInterval(tick, 20000);
+    refresh();
+    const tick = () => { if (document.visibilityState === "visible") refresh(); };
+    const id = window.setInterval(tick, 30000);
     window.addEventListener("focus", tick);
     return () => { window.clearInterval(id); window.removeEventListener("focus", tick); };
   }, [session, refresh]);
@@ -64,7 +69,7 @@ export default function Journal() {
     return (
       <Gate
         notice={error}
-        onEnter={(s) => { saveSession(s); setError(null); setSession(s); }}
+        onEnter={(s) => { setError(null); setSession(s); }}
       />
     );
   }
@@ -83,13 +88,13 @@ export default function Journal() {
         <div className="whoami">
           <span>Posting as</span>
           <b style={{ color: PEOPLE.find((p) => p.name === session.user)?.color }}>{session.user}</b>
-          <button type="button" className="linkbtn" onClick={() => { saveSession(null); setSession(null); setData(null); }}>Switch</button>
+          <button type="button" className="linkbtn" onClick={() => { api("/api/auth", { method: "DELETE" }).catch(() => {}); version.current = -1; setSession(null); setData(null); }}>Switch</button>
         </div>
       </section>
 
       <div className="daystrip" role="tablist" aria-label="Pick a day">
         <button type="button" role="tab" aria-selected={day === "all"} className="dchip" onClick={() => setDay("all")}>
-          <b>All</b><small>{data ? `${data.entries.length} posts` : "…"}</small>
+          <b>All</b><small>{data ? `${data.entries.length} post${data.entries.length === 1 ? "" : "s"}` : "…"}</small>
         </button>
         {TRIP_DAYS.map((d) => (
           <button key={d.iso} type="button" role="tab" aria-selected={day === d.iso} className="dchip" onClick={() => setDay(d.iso)}>
@@ -112,7 +117,7 @@ export default function Journal() {
                 <span className="pcount">{list.length} {list.length === 1 ? "entry" : "entries"}</span>
               </header>
               {mine && (
-                <Composer session={session} defaultDay={day === "all" ? tripToday() ?? TRIP_DAYS[0].iso : day} onPosted={() => refresh(session)} />
+                <Composer session={session} defaultDay={day === "all" ? tripToday() ?? TRIP_DAYS[0].iso : day} onSaved={apply} />
               )}
               {data === null ? (
                 <p className="empty">Loading…</p>
@@ -127,7 +132,7 @@ export default function Journal() {
                       comments={commentsFor[e.id] ?? []}
                       session={session}
                       showDay={day === "all"}
-                      onChange={() => refresh(session)}
+                      onSaved={apply}
                       onOpenPhoto={(i) => setLightbox({ urls: e.photos.map((x) => x.url), index: i })}
                     />
                   ))}

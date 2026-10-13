@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { TRIP_DAYS } from "@/lib/people";
-import { api, type Session } from "@/lib/client";
+import { api, type JournalData } from "@/lib/client";
+import type { Session } from "./Journal";
 import PhotoPicker, { useDraftPhotos } from "./PhotoPicker";
 
-export default function Composer({ session, defaultDay, onPosted }: { session: Session; defaultDay: string; onPosted: () => void }) {
+export default function Composer({ session, defaultDay, onSaved }: { session: Session; defaultDay: string; onSaved: (d: JournalData) => void }) {
   const [body, setBody] = useState("");
   const [day, setDay] = useState(defaultDay);
   const [status, setStatus] = useState<string | null>(null);
@@ -20,14 +21,14 @@ export default function Composer({ session, defaultDay, onPosted }: { session: S
     setBusy(true);
     setError(null);
     try {
-      const photos = await draft.commit(session, setStatus);
+      const photos = await draft.commit(setStatus);
       setStatus("Posting…");
-      await api("/api/entries", session, { method: "POST", body: { day, body, photos } });
+      const next = await api<JournalData>("/api/entries", { method: "POST", body: { day, body, photos } });
       setBody("");
       draft.reset();
       setStatus("Posted.");
       window.setTimeout(() => setStatus(null), 2000);
-      onPosted();
+      onSaved(next);
     } catch (err) {
       setStatus(null);
       setError(err instanceof Error ? err.message : "Couldn’t post. Try again.");

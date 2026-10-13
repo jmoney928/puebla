@@ -1,4 +1,5 @@
-import { db, guard, json, fail, clean } from "@/lib/server";
+import { randomUUID } from "node:crypto";
+import { clean, fail, guard, json, mutate, present } from "@/lib/server";
 
 export async function POST(req: Request) {
   const g = guard(req);
@@ -6,8 +7,10 @@ export async function POST(req: Request) {
   const input = await req.json().catch(() => ({}));
   const body = clean(input.body, 2000);
   if (!body) return fail("Write a comment first.");
-  if (typeof input.entry_id !== "string") return fail("Missing entry.");
-  const { data, error } = await db().from("comments").insert({ entry_id: input.entry_id, author: g.user, body }).select().single();
-  if (error) return fail(error.message, 500);
-  return json(data, 201);
+  const out = await mutate((j) => {
+    if (!j.entries.some((e) => e.id === input.entry_id)) return fail("That entry doesn’t exist anymore.", 404);
+    j.comments.push({ id: randomUUID(), entry_id: input.entry_id, author: g.user, body, created_at: new Date().toISOString() });
+  });
+  if (out instanceof Response) return out;
+  return json(present(out.data), 201);
 }

@@ -1,15 +1,16 @@
 "use client";
 import { useState } from "react";
 import { colorOf, TRIP_DAYS } from "@/lib/people";
-import { api, postedAt, type Comment, type Entry, type Session } from "@/lib/client";
+import { api, postedAt, type Comment, type Entry, type JournalData } from "@/lib/client";
+import type { Session } from "./Journal";
 import PhotoPicker, { useDraftPhotos } from "./PhotoPicker";
 
 type Props = {
   entry: Entry; comments: Comment[]; session: Session; showDay: boolean;
-  onChange: () => void; onOpenPhoto: (i: number) => void;
+  onSaved: (d: JournalData) => void; onOpenPhoto: (i: number) => void;
 };
 
-export default function EntryCard({ entry, comments, session, showDay, onChange, onOpenPhoto }: Props) {
+export default function EntryCard({ entry, comments, session, showDay, onSaved, onOpenPhoto }: Props) {
   const mine = entry.author === session.user;
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -22,29 +23,31 @@ export default function EntryCard({ entry, comments, session, showDay, onChange,
   const day = TRIP_DAYS.find((d) => d.iso === entry.day);
   const edited = new Date(entry.updated_at).getTime() - new Date(entry.created_at).getTime() > 60000;
 
-  async function run(fn: () => Promise<unknown>) {
+  async function run(fn: () => Promise<JournalData>) {
     setBusy(true);
     setError(null);
-    try { await fn(); onChange(); }
+    try { onSaved(await fn()); }
     catch (err) { setError(err instanceof Error ? err.message : "Something went wrong."); }
     finally { setBusy(false); setStatus(null); }
   }
 
   const save = () => run(async () => {
-    const photos = await draft.commit(session, setStatus);
-    await api(`/api/entries/${entry.id}`, session, { method: "PATCH", body: { body, photos } });
+    const photos = await draft.commit(setStatus);
+    const next = await api<JournalData>(`/api/entries/${entry.id}`, { method: "PATCH", body: { body, photos } });
     setEditing(false);
+    return next;
   });
-  const remove = () => run(() => api(`/api/entries/${entry.id}`, session, { method: "DELETE" }));
+  const remove = () => run(() => api<JournalData>(`/api/entries/${entry.id}`, { method: "DELETE" }));
   const addComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim()) return;
     run(async () => {
-      await api("/api/comments", session, { method: "POST", body: { entry_id: entry.id, body: comment } });
+      const next = await api<JournalData>("/api/comments", { method: "POST", body: { entry_id: entry.id, body: comment } });
       setComment("");
+      return next;
     });
   };
-  const removeComment = (id: string) => run(() => api(`/api/comments/${id}`, session, { method: "DELETE" }));
+  const removeComment = (id: string) => run(() => api<JournalData>(`/api/comments/${id}`, { method: "DELETE" }));
 
   return (
     <article className="entry">

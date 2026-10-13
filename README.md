@@ -3,74 +3,76 @@
 Trip site for Alec, Sullivan, Jack and Patrick, Oct 19–28, 2026.
 
 - **Itinerary** (`/`): the week grid, day-by-day plan, notes and booking links.
-- **Journal** (`/journal`): four sections, one per person. Each person posts daily entries with photos, and everyone can comment. It's behind a shared trip passcode.
+- **Journal** (`/journal`): four sections, one per person. Post daily entries with photos, comment on each other's. Behind a shared trip passcode.
 
-Built with Next.js (App Router) and Supabase (Postgres + Storage), deployed on Vercel.
+Next.js on Vercel. Posts and photos are stored in a **private Vercel Blob store**, so there's no separate database account.
 
-## Setup (about 15 minutes)
+## Setup
 
-### 1. Supabase
+### 1. Push to GitHub
 
-1. Create a free project at [supabase.com](https://supabase.com).
-2. Open **SQL Editor**, paste in everything from `supabase/schema.sql` and run it. That creates the `entries` and `comments` tables and the `trip-photos` storage bucket.
-3. Go to **Project Settings → API** and copy:
-   - Project URL
-   - `anon` / publishable key
-   - `service_role` / secret key (keep this one private)
-
-### 2. Run it locally (optional)
+The folder is already a git repo with one commit. Create an empty repo on GitHub (no README), then:
 
 ```bash
-cp .env.example .env.local   # fill in the four values
-npm install
-npm run dev                  # http://localhost:3000
-```
-
-### 3. Push to GitHub
-
-```bash
-git init            # skip if the folder already has .git
-git add .
-git commit -m "Puebla trip site"
-git branch -M main
+cd puebla-trip
 git remote add origin https://github.com/<you>/puebla-trip.git
 git push -u origin main
 ```
 
-### 4. Deploy on Vercel
+### 2. Import into Vercel
 
-1. In Vercel, click **Add New → Project** and import the GitHub repo. The framework is detected as Next.js automatically.
-2. Under **Environment Variables**, add:
+1. In Vercel: **Add New → Project**, pick the repo. Leave the build settings as they are.
+2. Open **Environment Variables** and add `TRIP_PASSCODE` with the password you'll give the group.
+3. Click **Deploy**.
 
-   | Name | Value |
-   |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon / publishable key |
-   | `SUPABASE_SERVICE_ROLE_KEY` | service_role / secret key |
-   | `TRIP_PASSCODE` | the password the four of you will type once |
+### 3. Add the Blob store
 
-3. Deploy. Send the URL and the passcode to the group chat.
+1. In the project, open the **Storage** tab → **Create** → **Blob**.
+2. Set access to **Private**. The app expects a private store and uploads fail on a public one.
+3. Connect it to the project for all environments. Vercel adds the Blob credentials to the project on its own.
+4. Go to **Deployments**, open the ⋯ menu on the latest one and click **Redeploy**, so the new credentials take effect.
 
-If you change an env var later, redeploy so it takes effect.
+### 4. Test it
+
+Open `your-site.vercel.app/journal`, pick your name, enter the passcode, and post something with a photo. Then send the link and passcode to the group.
+
+## Free plan limits (Hobby)
+
+Vercel Blob is free on Hobby within these monthly limits. If you go over, Vercel doesn't charge you. It locks Blob for 30 days instead, so the journal would stop working.
+
+| Limit | Included | What uses it |
+|---|---|---|
+| Storage | 1 GB | Photos are shrunk to ~1600 px on the phone, roughly 200–400 KB each |
+| Writes ("advanced operations") | 2,000 | 1 per photo, 1 per post, comment, edit or delete |
+| Uncached reads ("simple operations") | 10,000 | 1 per post, comment, edit or delete, plus the first view of each photo |
+
+Rough budget for the whole group: about 1,000 photos plus a few hundred posts and comments. Check usage in Vercel under **Observability → Blob**. Avoid clicking around the store in the Vercel dashboard, because dashboard browsing counts as operations too.
 
 ## How the journal works
 
-- On first visit, each person picks their name and types the trip passcode. The phone remembers it.
-- Pick a day at the top (it defaults to today while you're in Puebla), then write in your own section. Add as many photos as you want.
-- Photos are shrunk to ~2000 px JPEGs on the phone before upload, then go straight to Supabase Storage.
-- You can edit or delete your own entries and comments. Everyone can comment on anything.
-- The page refreshes itself every 20 seconds and whenever you come back to the tab.
+- First visit: pick your name and enter the passcode. A cookie keeps you signed in on that phone for 90 days.
+- Pick a day at the top (it defaults to today while you're in Puebla) and write in your own section.
+- You can edit or delete your own entries and comments. Anyone can comment on anything.
+- New posts from others show up within about a minute. The page refreshes every 30 seconds and whenever you come back to the tab.
+- All posts live in one file, `journal/data.json`, and photos sit under `photos/<name>/`. Both are private, and photos only load for signed-in people.
+- The passcode is shared, so anyone who has it can post as any of the four names. Don't post it anywhere public. Changing `TRIP_PASSCODE` signs everyone out.
 
-### Security, briefly
+## Run it locally (optional)
 
-- Every journal read and write goes through the server and checks the passcode. The database tables have no public access.
-- Photos sit in a public bucket under random file names, so a photo can only be opened by someone who already has its link.
-- The passcode is shared, so anyone who has it can post as any of the four names. That's fine for four friends, but don't post the passcode anywhere public.
+```bash
+npm install
+npm i -g vercel
+vercel link              # connect to the Vercel project
+vercel env pull .env.local
+npm run dev              # http://localhost:3000
+```
+
+Local dev uses the same Blob store as the live site.
 
 ## Editing the trip
 
 - Schedule and day cards: `lib/itinerary.ts`
 - Notes, booking table, sources: `lib/content.ts`
-- People and trip dates for the journal: `lib/people.ts` (if you add or rename someone, update the `check (author in (...))` lines in `supabase/schema.sql` too)
+- People and journal dates: `lib/people.ts`
 
 Push to `main` and Vercel redeploys automatically.

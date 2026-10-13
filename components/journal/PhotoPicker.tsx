@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { uploadPhoto, type Photo, type Session } from "@/lib/client";
+import { uploadPhoto, type Photo } from "@/lib/client";
 
 export type DraftPhoto = { key: string; saved?: Photo; file?: File; preview: string };
 
@@ -23,14 +23,14 @@ export function useDraftPhotos(initial: Photo[] = []) {
   const reset = (to: Photo[] = []) => setItems(to.map((p) => ({ key: p.path, saved: p, preview: p.url })));
 
   /** Uploads any new photos and returns the final ordered list of storage paths. */
-  const commit = async (s: Session, onProgress: (msg: string) => void) => {
+  const commit = async (onProgress: (msg: string) => void) => {
     const fresh = items.filter((i) => i.file);
     const paths: string[] = [];
     let done = 0;
     for (const item of items) {
       if (item.saved) { paths.push(item.saved.path); continue; }
       onProgress(`Uploading photo ${++done} of ${fresh.length}…`);
-      const photo = await uploadPhoto(item.file!, s);
+      const photo = await uploadPhoto(item.file!);
       paths.push(photo.path);
     }
     return paths;
