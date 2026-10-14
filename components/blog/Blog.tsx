@@ -6,6 +6,7 @@ import Composer from "./Composer";
 import PostCard from "./PostCard";
 import Lightbox from "./Lightbox";
 import AdminLogin from "./AdminLogin";
+import Fiesta, { type FiestaHandle } from "./Fiesta";
 
 export default function Blog() {
   const [admin, setAdmin] = useState(false);
@@ -14,6 +15,8 @@ export default function Blog() {
   const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
   const version = useRef(-1);
   const [me, setMe] = useState("");
+  const fiesta = useRef<FiestaHandle>(null);
+  const celebrate = useCallback(() => fiesta.current?.go(), []);
   useEffect(() => setMe(deviceId()), []);
 
   // Reads come from a cached copy that can lag a write by up to a minute, so never step back to an older version.
@@ -97,6 +100,7 @@ export default function Blog() {
               reactions={data.reactions ?? {}}
               me={me}
               onReact={react}
+              onSent={celebrate}
               admin={admin}
               onSaved={apply}
               onOpenPhoto={(i) => setLightbox({ urls: e.photos.map((x) => x.url), index: i })}
@@ -106,6 +110,8 @@ export default function Blog() {
       )}
 
       <AdminLogin admin={admin} onChange={setAdmin} />
+
+      <Fiesta ref={fiesta} />
 
       {lightbox && <Lightbox urls={lightbox.urls} index={lightbox.index} onClose={() => setLightbox(null)} />}
     </div>

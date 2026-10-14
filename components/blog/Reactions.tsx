@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { REACTIONS, type ReactionKey, type ReactionMap } from "@/lib/reactions";
 
 /** Windows has no flag emoji (it shows "MX"), so the Mexico flag is drawn. */
-function MexicoFlag() {
+export function MexicoFlag() {
   return (
     <svg className="mxflag" viewBox="0 0 21 14" aria-hidden="true" focusable="false">
       <rect width="7" height="14" fill="#006847" />

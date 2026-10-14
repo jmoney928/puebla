@@ -9,10 +9,11 @@ import type { ReactionKey, ReactionMap } from "@/lib/reactions";
 type Props = {
   entry: Entry; comments: Comment[]; admin: boolean;
   reactions: ReactionMap; me: string; onReact: (target: string, key: ReactionKey) => void;
+  onSent: () => void;
   onSaved: (d: JournalData) => void; onOpenPhoto: (i: number) => void;
 };
 
-export default function PostCard({ entry, comments, admin, reactions, me, onReact, onSaved, onOpenPhoto }: Props) {
+export default function PostCard({ entry, comments, admin, reactions, me, onReact, onSent, onSaved, onOpenPhoto }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [title, setTitle] = useState(entry.title);
@@ -23,7 +24,7 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
   const [name, setName] = useState(() => (typeof window === "undefined" ? "" : loadName()));
   const [comment, setComment] = useState("");
   const [trap, setTrap] = useState("");
-  const [replyTo, setReplyTo] = useState<{ thread: string; name: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<{ thread: string; name: string; askName: boolean } | null>(null);
   const [reply, setReply] = useState("");
   const draft = useDraftPhotos(entry.photos);
   const day = TRIP_DAYS.find((d) => d.iso === entry.day);
@@ -52,11 +53,14 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
     run(async () => {
       const next = await api<JournalData>("/api/comments", { method: "POST", body: { entry_id: entry.id, name, body: comment, website: trap } });
       setComment("");
+      onSent();
       return next;
     });
   };
   const startReply = (thread: string, to: string) => {
-    setReplyTo({ thread, name: to });
+    const saved = name.trim() || loadName();
+    if (saved && saved !== name) setName(saved);
+    setReplyTo({ thread, name: to, askName: !saved });
     setReply("");
     setError(null);
     requestAnimationFrame(() => document.getElementById(`r-${thread}`)?.focus());
@@ -71,6 +75,7 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
       const next = await api<JournalData>("/api/comments", { method: "POST", body: { entry_id: entry.id, parent_id: replyTo.thread, name, body: reply, website: trap } });
       setReply("");
       setReplyTo(null);
+      onSent();
       return next;
     });
   };
@@ -146,7 +151,13 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
         {threads.map((t) => {
           const replies = repliesTo(t.id);
           const row = (c: Comment, isReply: boolean) => (
-            <div key={c.id} className={isReply ? "comment reply" : "comment"}>
+            <div key={c.id} className={`${isReply ? "comment reply" : "comment"}${replyTo?.thread === t.id && replyTo.name === c.name ? " replying" : ""}`}
+              title="Tap to reply"
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest("button, a, input, .rpicker")) return;
+                if (window.getSelection()?.toString()) return;
+                if (!busy) startReply(t.id, c.name);
+              }}>
               <b>{c.name}</b>
               <span className="ctext">{c.body}</span>
               <span className="ctime">{postedAt(c.created_at)}</span>
@@ -165,7 +176,7 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
               {replies.length > 0 && <div className="creplies">{replies.map((r) => row(r, true))}</div>}
               {replyTo?.thread === t.id && (
                 <form className="cform rform" onSubmit={sendReply}>
-                  {!loadName() && (
+                  {replyTo.askName && (
                     <>
                       <label htmlFor={`rn-${t.id}`} className="sr">Your name</label>
                       <input id={`rn-${t.id}`} className="cname" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} disabled={busy} maxLength={40} autoComplete="nickname" />
