@@ -48,7 +48,7 @@ export function guardAdmin(req: Request): Response | null {
 /* ---------- storage: one private JSON file + private photos in Vercel Blob ---------- */
 
 export type StoredEntry = { id: string; author: string; day: string; title?: string; body: string; photos: string[]; created_at: string; updated_at: string };
-export type StoredComment = { id: string; entry_id: string; name: string; body: string; created_at: string };
+export type StoredComment = { id: string; entry_id: string; parent_id?: string; name: string; body: string; created_at: string };
 export type Journal = { version: number; entries: StoredEntry[]; comments: StoredComment[] };
 
 const DATA = "journal/data.json";

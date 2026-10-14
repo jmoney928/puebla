@@ -3,7 +3,7 @@ import { TRIP_DAYS } from "./people";
 
 export type Photo = { path: string; url: string };
 export type Entry = { id: string; author: string; day: string; title: string; body: string; photos: Photo[]; created_at: string; updated_at: string };
-export type Comment = { id: string; entry_id: string; name: string; body: string; created_at: string };
+export type Comment = { id: string; entry_id: string; parent_id?: string; name: string; body: string; created_at: string };
 export type JournalData = { version: number; entries: Entry[]; comments: Comment[] };
 
 export class ApiError extends Error {

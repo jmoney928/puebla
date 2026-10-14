@@ -75,6 +75,14 @@ textarea:focus,input:focus,select:focus{outline:2px solid var(--cobalt);outline-
 .ctext{flex:1 1 60%;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .ctime{font:500 10.5px var(--mono);color:var(--muted)}
 .cdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px}
+.cthread{display:grid;gap:6px}
+.creplies{display:grid;gap:6px;margin-left:18px;padding-left:10px;border-left:2px solid var(--line)}
+.comment.reply{background:transparent;padding-block:4px}
+.creply{border:0;background:none;padding:0;font:600 12px var(--body);color:var(--muted);cursor:pointer}
+.creply:hover{color:var(--cobalt)}
+.creply:focus-visible{outline:2px solid var(--rosa);outline-offset:2px}
+.rform{margin:0 0 2px 18px;padding-left:10px;border-left:2px solid var(--cobalt)}
+.rform input:not(.cname){flex:1 1 auto;min-width:0}
 .cform{display:flex;gap:6px;margin-top:4px}
 .cform input{padding:7px 10px;font-size:14px}
 .cform .cname{flex:0 0 130px}

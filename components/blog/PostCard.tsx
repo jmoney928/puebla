@@ -20,6 +20,8 @@ export default function PostCard({ entry, comments, admin, onSaved, onOpenPhoto 
   const [name, setName] = useState(() => (typeof window === "undefined" ? "" : loadName()));
   const [comment, setComment] = useState("");
   const [trap, setTrap] = useState("");
+  const [replyTo, setReplyTo] = useState<{ thread: string; name: string } | null>(null);
+  const [reply, setReply] = useState("");
   const draft = useDraftPhotos(entry.photos);
   const day = TRIP_DAYS.find((d) => d.iso === entry.day);
   const edited = new Date(entry.updated_at).getTime() - new Date(entry.created_at).getTime() > 60000;
@@ -50,6 +52,29 @@ export default function PostCard({ entry, comments, admin, onSaved, onOpenPhoto 
       return next;
     });
   };
+  const startReply = (thread: string, to: string) => {
+    setReplyTo({ thread, name: to });
+    setReply("");
+    setError(null);
+    requestAnimationFrame(() => document.getElementById(`r-${thread}`)?.focus());
+  };
+  const sendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyTo) return;
+    if (!name.trim()) return setError("Add your name.");
+    if (!reply.trim()) return;
+    saveName(name.trim());
+    run(async () => {
+      const next = await api<JournalData>("/api/comments", { method: "POST", body: { entry_id: entry.id, parent_id: replyTo.thread, name, body: reply, website: trap } });
+      setReply("");
+      setReplyTo(null);
+      return next;
+    });
+  };
+  // One level of threads: top-level comments in order, each with its replies underneath.
+  const ids = new Set(comments.map((c) => c.id));
+  const threads = comments.filter((c) => !c.parent_id || !ids.has(c.parent_id));
+  const repliesTo = (id: string) => comments.filter((c) => c.parent_id === id);
   const removeComment = (id: string) => run(() => api<JournalData>(`/api/comments/${id}`, { method: "DELETE" }));
 
   return (
@@ -113,16 +138,40 @@ export default function PostCard({ entry, comments, admin, onSaved, onOpenPhoto 
 
       <section className="comments" aria-label="Comments">
         <h3 className="chead">{comments.length ? `${comments.length} comment${comments.length > 1 ? "s" : ""}` : "No comments yet"}</h3>
-        {comments.map((c) => (
-          <div key={c.id} className="comment">
-            <b>{c.name}</b>
-            <span className="ctext">{c.body}</span>
-            <span className="ctime">{postedAt(c.created_at)}</span>
-            {admin && (
-              <button type="button" className="cdel" aria-label={`Delete comment from ${c.name}`} onClick={() => removeComment(c.id)} disabled={busy}>×</button>
-            )}
-          </div>
-        ))}
+        {threads.map((t) => {
+          const replies = repliesTo(t.id);
+          const row = (c: Comment, isReply: boolean) => (
+            <div key={c.id} className={isReply ? "comment reply" : "comment"}>
+              <b>{c.name}</b>
+              <span className="ctext">{c.body}</span>
+              <span className="ctime">{postedAt(c.created_at)}</span>
+              <button type="button" className="creply" onClick={() => startReply(t.id, c.name)} disabled={busy}>Reply</button>
+              {admin && (
+                <button type="button" className="cdel" aria-label={isReply ? `Delete reply from ${c.name}` : `Delete comment from ${c.name} and its replies`} onClick={() => removeComment(c.id)} disabled={busy}>×</button>
+              )}
+            </div>
+          );
+          return (
+            <div key={t.id} className="cthread">
+              {row(t, false)}
+              {replies.length > 0 && <div className="creplies">{replies.map((r) => row(r, true))}</div>}
+              {replyTo?.thread === t.id && (
+                <form className="cform rform" onSubmit={sendReply}>
+                  {!loadName() && (
+                    <>
+                      <label htmlFor={`rn-${t.id}`} className="sr">Your name</label>
+                      <input id={`rn-${t.id}`} className="cname" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} disabled={busy} maxLength={40} autoComplete="nickname" />
+                    </>
+                  )}
+                  <label htmlFor={`r-${t.id}`} className="sr">{`Reply to ${replyTo.name}`}</label>
+                  <input id={`r-${t.id}`} placeholder={`Reply to ${replyTo.name}…`} value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") setReplyTo(null); }} disabled={busy} maxLength={1000} />
+                  <button type="button" className="btn small ghost" onClick={() => setReplyTo(null)} disabled={busy}>Cancel</button>
+                  <button type="submit" className="btn small" disabled={busy || !reply.trim()}>Reply</button>
+                </form>
+              )}
+            </div>
+          );
+        })}
         <form className="cform" onSubmit={addComment}>
           <label htmlFor={`n-${entry.id}`} className="sr">Your name</label>
           <input id={`n-${entry.id}`} className="cname" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} disabled={busy} maxLength={40} autoComplete="nickname" />
