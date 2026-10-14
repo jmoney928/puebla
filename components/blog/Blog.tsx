@@ -103,7 +103,7 @@ export default function Blog() {
               onSent={celebrate}
               admin={admin}
               onSaved={apply}
-              onOpenPhoto={(i) => setLightbox({ urls: e.photos.map((x) => x.url), index: i })}
+              onOpenPhoto={(urls, index) => setLightbox({ urls, index })}
             />
           ))}
         </div>

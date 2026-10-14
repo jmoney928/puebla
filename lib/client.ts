@@ -1,9 +1,14 @@
 "use client";
 import { TRIP_DAYS } from "./people";
 import type { ReactionMap } from "./reactions";
+import { upload } from "@vercel/blob/client";
+import { VIDEO_TYPES } from "./media";
 
-export type Photo = { path: string; url: string };
-export type Entry = { id: string; author: string; day: string; title: string; body: string; photos: Photo[]; created_at: string; updated_at: string };
+/** A photo or a video (video: true). */
+export type Photo = { path: string; url: string; video?: boolean };
+/** A "moment": photos/videos with what was going on beside them. */
+export type Section = { id: string; text: string; media: Photo[] };
+export type Entry = { id: string; author: string; day: string; title: string; body: string; photos: Photo[]; sections: Section[]; created_at: string; updated_at: string };
 export type Comment = { id: string; entry_id: string; parent_id?: string; name: string; body: string; created_at: string };
 export type JournalData = { version: number; entries: Entry[]; comments: Comment[]; reactions: ReactionMap };
 
@@ -79,4 +84,46 @@ export function deviceId(): string {
   } catch {
     return (memDevice ||= `m${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`);
   }
+}
+
+/** The video's file type, falling back to its name (some phones leave the type blank). */
+export function videoType(file: File): string | null {
+  if (VIDEO_TYPES[file.type]) return file.type;
+  if (/\.mov$/i.test(file.name)) return "video/quicktime";
+  if (/\.mp4$/i.test(file.name) || /\.m4v$/i.test(file.name)) return "video/mp4";
+  if (/\.webm$/i.test(file.name)) return "video/webm";
+  return null;
+}
+
+/** Length in seconds, or null if this browser can't read it (we then let the upload through). */
+export function videoDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement("video");
+    const url = URL.createObjectURL(file);
+    const done = (d: number | null) => { URL.revokeObjectURL(url); resolve(d); };
+    v.preload = "metadata";
+    v.onloadedmetadata = () => done(Number.isFinite(v.duration) ? v.duration : null);
+    v.onerror = () => done(null);
+    window.setTimeout(() => done(null), 8000);
+    v.src = url;
+  });
+}
+
+/** Videos go straight from the phone to storage (they're too big to pass through the site). */
+export async function uploadVideo(file: File, onProgress: (pct: number) => void): Promise<Photo> {
+  const type = videoType(file);
+  if (!type) throw new ApiError("That video format isn’t supported. Try an MP4 or MOV.", 400);
+  const path = `videos/${crypto.randomUUID()}.${VIDEO_TYPES[type]}`;
+  try {
+    await upload(path, file, {
+      access: "private",
+      handleUploadUrl: "/api/videos",
+      contentType: type,
+      multipart: file.size > 15 * 1024 * 1024,
+      onUploadProgress: (e) => onProgress(Math.round(e.percentage)),
+    });
+  } catch (e) {
+    throw new ApiError(e instanceof Error && e.message ? `Video upload failed: ${e.message}` : "Video upload failed. Try again.", 0);
+  }
+  return { path, url: `/api/video?p=${encodeURIComponent(path)}`, video: true };
 }

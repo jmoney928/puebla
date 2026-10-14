@@ -42,13 +42,16 @@ Vercel Blob is free on Hobby within these monthly limits. If you go over, Vercel
 
 | Limit | Included | What uses it |
 |---|---|---|
-| Storage | 1 GB | Photos are shrunk to ~1600 px on the phone, roughly 200–400 KB each |
+| Storage | 1 GB | Photos are shrunk to ~1600 px on the phone, roughly 200–400 KB each. Videos aren’t shrunk: a 30-second phone clip is ~40–60 MB, so 1 GB fits about 15–20 clips plus photos |
 | Writes ("advanced operations") | 2,000 | 1 per photo, 1 per post, comment, edit or delete |
 | Uncached reads ("simple operations") | 10,000 | 1 per post, comment, edit or delete, plus the first view of each photo |
 
 Rough budget for the whole group: about 1,000 photos plus a few hundred posts and comments. Check usage in Vercel under **Observability → Blob**. Avoid clicking around the store in the Vercel dashboard, because dashboard browsing counts as operations too.
 
 ## How the blog works
+
+- **Posts are editorial:** a main story at the top, then "moments". Each moment is one photo, a group of photos, or a video, with what was going on written beside it. Sides alternate on computers; on phones the text sits under the pictures. Jack adds moments with "+ Add a moment" and can reorder or remove them. Old posts with a plain photo grid still show the same; editing one turns its photos into a single moment.
+- **Videos:** up to 60 seconds and 100 MB each, 4 per post. They upload straight from Jack's phone to the Blob store (the site's own upload limit is 4.5 MB) and play in the post.
 
 - Posts show newest first. Each has a day tag (Oct 19–28), an optional title, text and photos.
 - Jack logs in once with the link at the bottom of the blog. A cookie keeps him logged in on that phone for 90 days. Once logged in, he gets a "New post" box at the top, edit and delete on every post, and an × to delete any comment.

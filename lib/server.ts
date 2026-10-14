@@ -48,7 +48,11 @@ export function guardAdmin(req: Request): Response | null {
 
 /* ---------- storage: one private JSON file + private photos in Vercel Blob ---------- */
 
-export type StoredEntry = { id: string; author: string; day: string; title?: string; body: string; photos: string[]; created_at: string; updated_at: string };
+/** A "moment" in a post: some photos/videos with the story of what was going on beside them. */
+export type StoredSection = { id: string; text: string; media: string[] };
+/** `photos` is the old one-grid-per-post layout; new posts use `sections` instead. */
+export type StoredEntry = { id: string; author: string; day: string; title?: string; body: string; photos: string[]; sections?: StoredSection[]; created_at: string; updated_at: string };
+export const allMedia = (e: StoredEntry) => [...e.photos, ...(e.sections ?? []).flatMap((s) => s.media)];
 export type StoredComment = { id: string; entry_id: string; parent_id?: string; name: string; body: string; created_at: string };
 export type Journal = { version: number; entries: StoredEntry[]; comments: StoredComment[]; reactions: ReactionMap };
 
@@ -113,13 +117,20 @@ export async function mutate<T>(fn: (j: Journal) => T | Response): Promise<{ dat
 }
 
 export const photoUrl = (path: string) => `/api/photo?p=${encodeURIComponent(path)}`;
+export const videoUrl = (path: string) => `/api/video?p=${encodeURIComponent(path)}`;
+const mediaOut = (p: string) => (p.startsWith("videos/") ? { path: p, url: videoUrl(p), video: true } : { path: p, url: photoUrl(p) });
 
-/** What the browser gets: photo paths swapped for URLs on our own photo route. */
+/** What the browser gets: photo and video paths swapped for URLs on our own routes. */
 export const present = (j: Journal) => ({
   version: j.version,
   entries: [...j.entries]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
-    .map((e) => ({ ...e, title: e.title ?? "", photos: e.photos.map((p) => ({ path: p, url: photoUrl(p) })) })),
+    .map((e) => ({
+      ...e,
+      title: e.title ?? "",
+      photos: e.photos.map(mediaOut),
+      sections: (e.sections ?? []).map((s) => ({ ...s, media: s.media.map(mediaOut) })),
+    })),
   comments: j.comments.map((c) => ({ ...c, name: c.name ?? (c as { author?: string }).author ?? "Someone" })),
   reactions: j.reactions ?? {},
 });

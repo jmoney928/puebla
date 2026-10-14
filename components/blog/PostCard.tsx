@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { TRIP_DAYS } from "@/lib/people";
 import { api, loadName, postedAt, saveName, type Comment, type Entry, type JournalData } from "@/lib/client";
-import PhotoPicker, { useDraftPhotos } from "./PhotoPicker";
+import PostEditor, { useDraftPost } from "./PostEditor";
+import Story from "./Story";
 import Reactions from "./Reactions";
 import type { ReactionKey, ReactionMap } from "@/lib/reactions";
 
@@ -10,14 +11,12 @@ type Props = {
   entry: Entry; comments: Comment[]; admin: boolean;
   reactions: ReactionMap; me: string; onReact: (target: string, key: ReactionKey) => void;
   onSent: () => void;
-  onSaved: (d: JournalData) => void; onOpenPhoto: (i: number) => void;
+  onSaved: (d: JournalData) => void; onOpenPhoto: (urls: string[], index: number) => void;
 };
 
 export default function PostCard({ entry, comments, admin, reactions, me, onReact, onSent, onSaved, onOpenPhoto }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [title, setTitle] = useState(entry.title);
-  const [body, setBody] = useState(entry.body);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +25,7 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
   const [trap, setTrap] = useState("");
   const [replyTo, setReplyTo] = useState<{ thread: string; name: string; askName: boolean } | null>(null);
   const [reply, setReply] = useState("");
-  const draft = useDraftPhotos(entry.photos);
+  const draft = useDraftPost(entry);
   const day = TRIP_DAYS.find((d) => d.iso === entry.day);
   const edited = new Date(entry.updated_at).getTime() - new Date(entry.created_at).getTime() > 60000;
 
@@ -39,8 +38,9 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
   }
 
   const save = () => run(async () => {
-    const photos = await draft.commit(setStatus);
-    const next = await api<JournalData>(`/api/entries/${entry.id}`, { method: "PATCH", body: { title, body, photos } });
+    const sections = await draft.commit(setStatus);
+    setStatus("Saving…");
+    const next = await api<JournalData>(`/api/entries/${entry.id}`, { method: "PATCH", body: { title: draft.title, body: draft.body, sections } });
     setEditing(false);
     return next;
   });
@@ -103,7 +103,7 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
               </>
             ) : (
               <>
-                <button type="button" className="linkbtn" onClick={() => { setTitle(entry.title); setBody(entry.body); draft.reset(entry.photos); setEditing(true); }}>Edit</button>
+                <button type="button" className="linkbtn" onClick={() => { draft.reset(entry); setEditing(true); }}>Edit</button>
                 <button type="button" className="linkbtn" onClick={() => setConfirmDelete(true)}>Delete</button>
               </>
             )}
@@ -113,12 +113,8 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
 
       {editing ? (
         <div className="editbox">
-          <label htmlFor={`edit-title-${entry.id}`} className="sr">Title</label>
-          <input id={`edit-title-${entry.id}`} className="ctitle" placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} maxLength={140} />
-          <label htmlFor={`edit-${entry.id}`} className="sr">Post</label>
-          <textarea id={`edit-${entry.id}`} rows={6} value={body} onChange={(e) => setBody(e.target.value)} disabled={busy} />
+          <PostEditor id={`edit-${entry.id}`} draft={draft} busy={busy} />
           <div className="cactions">
-            <PhotoPicker id={`edit-photos-${entry.id}`} draft={draft} disabled={busy} />
             <div className="btnrow">
               <button type="button" className="btn ghost" onClick={() => setEditing(false)} disabled={busy}>Cancel</button>
               <button type="button" className="btn" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
@@ -128,17 +124,7 @@ export default function PostCard({ entry, comments, admin, reactions, me, onReac
         </div>
       ) : (
         <>
-          {entry.body && <p className="ebody">{entry.body}</p>}
-          {entry.photos.length > 0 && (
-            <div className={`photos n${Math.min(entry.photos.length, 3)}`}>
-              {entry.photos.map((p, i) => (
-                <button key={p.path} type="button" className="photo" onClick={() => onOpenPhoto(i)} aria-label={`Open photo ${i + 1}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.url} alt="" loading="lazy" />
-                </button>
-              ))}
-            </div>
-          )}
+          <Story entry={entry} onOpenPhoto={onOpenPhoto} />
         </>
       )}
 
