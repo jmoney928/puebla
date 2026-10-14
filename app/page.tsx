@@ -1,3 +1,4 @@
+import BlogNudge from "@/components/BlogNudge";
 import Itinerary from "@/components/itinerary/Itinerary";
 import { BOOKINGS, NOTES, SOURCES } from "@/lib/content";
 
@@ -12,7 +13,10 @@ export default function ItineraryPage() {
       <section className="hero">
         <div>
           <div className="eyebrow">Itinerary · Puebla, México</div>
-          <h1>Pue<span>bla</span></h1>
+          <div className="hero-title">
+            <h1>Pue<span>bla</span></h1>
+            <BlogNudge />
+          </div>
           <div className="dates">Oct 19 <em>—</em> Oct 28, 2026</div>
           <p className="lede">Land in CDMX late on the 19th, roll into Puebla around 2 am, and fly out of CDMX at 12:30 am on the 29th. Everything in between is built around Patrick’s classes: three pyramid sites, an Atlixco Day of the Dead night, Alpinia, Africam Safari, lucha libre, and enough nights out to need the chill ones.</p>
         </div>

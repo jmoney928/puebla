@@ -13,3 +13,22 @@ img{max-width:100%}
 .tab[aria-current="page"]{background:var(--ink);color:var(--bg)}
 .tab:focus-visible,.brand:focus-visible{outline:2px solid var(--rosa);outline-offset:2px}
 @media (max-width:480px){.site-head{padding-inline:16px}.tab{padding:7px 12px}}
+
+/* ---------- crayon "check out the blog here!" next to the PUEBLA headline ---------- */
+.hero-title{position:relative;display:inline-block;margin-top:8px}
+.hero-title h1{margin-top:0}
+.nudge{position:absolute;left:100%;top:2px;margin-left:clamp(10px,2.2vw,30px);
+  font-family:var(--font-hand),"Comic Sans MS","Bradley Hand",cursive;font-size:clamp(19px,2.5vw,30px);line-height:.98;
+  color:var(--rosa);text-decoration:none;white-space:nowrap;transform:rotate(-7deg);transform-origin:left top;
+  filter:url(#crayon);z-index:2}
+.nudge:hover{text-decoration:underline wavy;text-underline-offset:4px;text-decoration-thickness:2px}
+.nudge:focus-visible{outline:2px dashed var(--rosa);outline-offset:6px;border-radius:6px}
+.nudge-arrow{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none;z-index:1}
+.nudge-arrow path{fill:none;stroke:var(--rosa);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round}
+.nudge-arrow .ghost{stroke-width:2;opacity:.55}
+.nudge-arrow .draw{stroke-dasharray:1;stroke-dashoffset:1;animation:nudge-draw .9s .35s cubic-bezier(.5,0,.3,1) forwards}
+.nudge-arrow .tip{animation-delay:1.15s;animation-duration:.25s}
+@keyframes nudge-draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.nudge-arrow .draw{animation:none;stroke-dashoffset:0}}
+@media (max-width:600px){.nudge{top:14px}}
+@media (max-width:360px){.nudge{font-size:16px;margin-left:6px}}
