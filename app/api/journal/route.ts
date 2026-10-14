@@ -1,9 +1,8 @@
-import { guard, json, loadJournal, present } from "@/lib/server";
+import { json, loadJournal, present } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
-  const g = guard(req);
-  if (g instanceof Response) return g;
-  return json(present(await loadJournal()), 200, { "Cache-Control": "private, no-store" });
+// Public: everyone can read the blog.
+export async function GET() {
+  return json(present(await loadJournal()), 200, { "Cache-Control": "no-store" });
 }

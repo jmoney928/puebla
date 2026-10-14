@@ -3,7 +3,7 @@
 Trip site for Alec, Sullivan, Jack and Patrick, Oct 19–28, 2026.
 
 - **Itinerary** (`/`): the week grid, day-by-day plan, notes and booking links.
-- **Journal** (`/journal`): four sections, one per person. Post daily entries with photos, comment on each other's. Behind a shared trip passcode.
+- **Blog** (`/blog`): Jack's trip blog, newest post first. Anyone can read and comment. Only Jack can post, through the small "Jack's login" link at the bottom.
 
 Next.js on Vercel. Posts and photos are stored in a **private Vercel Blob store**, so there's no separate database account.
 
@@ -22,7 +22,7 @@ git push -u origin main
 ### 2. Import into Vercel
 
 1. In Vercel: **Add New → Project**, pick the repo. Leave the build settings as they are.
-2. Open **Environment Variables** and add `TRIP_PASSCODE` with the password you'll give the group.
+2. Open **Environment Variables** and add `JACK_PASSWORD` with the password Jack will use to post. (An existing `TRIP_PASSCODE` also works as a fallback.)
 3. Click **Deploy**.
 
 ### 3. Add the Blob store
@@ -34,11 +34,11 @@ git push -u origin main
 
 ### 4. Test it
 
-Open `your-site.vercel.app/journal`, pick your name, enter the passcode, and post something with a photo. Then send the link and passcode to the group.
+Open `your-site.vercel.app/blog`, scroll to the bottom, click **Jack’s login**, enter the password and post something with a photo. Then send the link to whoever you want reading it.
 
 ## Free plan limits (Hobby)
 
-Vercel Blob is free on Hobby within these monthly limits. If you go over, Vercel doesn't charge you. It locks Blob for 30 days instead, so the journal would stop working.
+Vercel Blob is free on Hobby within these monthly limits. If you go over, Vercel doesn't charge you. It locks Blob for 30 days instead, so the blog would stop working.
 
 | Limit | Included | What uses it |
 |---|---|---|
@@ -48,14 +48,14 @@ Vercel Blob is free on Hobby within these monthly limits. If you go over, Vercel
 
 Rough budget for the whole group: about 1,000 photos plus a few hundred posts and comments. Check usage in Vercel under **Observability → Blob**. Avoid clicking around the store in the Vercel dashboard, because dashboard browsing counts as operations too.
 
-## How the journal works
+## How the blog works
 
-- First visit: pick your name and enter the passcode. A cookie keeps you signed in on that phone for 90 days.
-- Pick a day at the top (it defaults to today while you're in Puebla) and write in your own section.
-- You can edit or delete your own entries and comments. Anyone can comment on anything.
-- New posts from others show up within about a minute. The page refreshes every 30 seconds and whenever you come back to the tab.
-- All posts live in one file, `journal/data.json`, and photos sit under `photos/<name>/`. Both are private, and photos only load for signed-in people.
-- The passcode is shared, so anyone who has it can post as any of the four names. Don't post it anywhere public. Changing `TRIP_PASSCODE` signs everyone out.
+- Posts show newest first. Each has a day tag (Oct 19–28), an optional title, text and photos.
+- Jack logs in once with the link at the bottom of the blog. A cookie keeps him logged in on that phone for 90 days. Once logged in, he gets a "New post" box at the top, edit and delete on every post, and an × to delete any comment.
+- Anyone can comment with just a name; the name is remembered on their phone. A hidden spam trap blocks most bots, and Jack can delete anything that slips through.
+- Photos are shrunk to ~1600 px on the phone before upload and served from the site with long caching.
+- New posts show up for readers within about a minute.
+- Everything lives in a private Blob store: posts and comments in `journal/data.json`, photos under `photos/`.
 
 ## Run it locally (optional)
 
@@ -73,6 +73,6 @@ Local dev uses the same Blob store as the live site.
 
 - Schedule and day cards: `lib/itinerary.ts`
 - Notes, booking table, sources: `lib/content.ts`
-- People and journal dates: `lib/people.ts`
+- Blog trip dates: `lib/people.ts`
 
 Push to `main` and Vercel redeploys automatically.

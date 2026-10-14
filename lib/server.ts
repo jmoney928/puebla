@@ -1,7 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
-import { isPerson, type Person } from "./people";
 
 /* ---------- responses ---------- */
 
@@ -9,55 +8,47 @@ export const json = (data: unknown, status = 200, headers?: HeadersInit) => Resp
 export const fail = (message: string, status = 400) => Response.json({ error: message }, { status });
 export const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-/* ---------- auth: shared passcode + a signed "who am I" cookie ---------- */
+/* ---------- auth: only Jack signs in (to write posts and moderate comments) ---------- */
 
-const COOKIE = "pj_session";
+const COOKIE = "pj_admin";
 const MAX_AGE = 60 * 60 * 24 * 90; // 90 days
+export const AUTHOR = "Jack";
 
-function passcode() {
-  const p = process.env.TRIP_PASSCODE;
-  if (!p) throw new Error("TRIP_PASSCODE isn't set.");
+function password() {
+  const p = process.env.JACK_PASSWORD || process.env.TRIP_PASSCODE;
+  if (!p) throw new Error("JACK_PASSWORD isn't set.");
   return p;
 }
-const sign = (user: string) => createHmac("sha256", passcode()).update(`journal:${user}`).digest("base64url");
+export const hasPassword = () => Boolean(process.env.JACK_PASSWORD || process.env.TRIP_PASSCODE);
+const sign = () => createHmac("sha256", password()).update(`admin:${AUTHOR}`).digest("base64url");
 
-export function checkPasscode(input: unknown) {
+export function checkPassword(input: unknown) {
   if (typeof input !== "string") return false;
-  const a = Buffer.from(input), b = Buffer.from(passcode());
+  const a = Buffer.from(input), b = Buffer.from(password());
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function sessionCookie(user: Person) {
-  return `${COOKIE}=${encodeURIComponent(user)}.${sign(user)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${MAX_AGE}`;
-}
+export const adminCookie = () => `${COOKIE}=${sign()}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${MAX_AGE}`;
 export const clearCookie = `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 
-export function currentUser(req: Request): Person | null {
+export function isAdmin(req: Request): boolean {
+  if (!hasPassword()) return false;
   const raw = req.headers.get("cookie")?.split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
-  if (!raw) return null;
-  const dot = raw.lastIndexOf(".");
-  const user = decodeURIComponent(raw.slice(0, dot));
-  const sig = raw.slice(dot + 1);
-  if (!isPerson(user)) return null;
-  try {
-    const expected = Buffer.from(sign(user)), given = Buffer.from(sig);
-    return expected.length === given.length && timingSafeEqual(expected, given) ? user : null;
-  } catch {
-    return null;
-  }
+  if (!raw) return false;
+  const a = Buffer.from(raw), b = Buffer.from(sign());
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** Use at the top of every journal route. */
-export function guard(req: Request): { user: Person } | Response {
-  if (!process.env.TRIP_PASSCODE) return fail("TRIP_PASSCODE isn't set on the server.", 500);
-  const user = currentUser(req);
-  return user ? { user } : fail("Sign in first.", 401);
+/** Use at the top of every write route that only Jack may call. */
+export function guardAdmin(req: Request): Response | null {
+  if (!hasPassword()) return fail("JACK_PASSWORD isn't set on the server.", 500);
+  return isAdmin(req) ? null : fail("Only Jack can do that. Log in at the bottom of the blog.", 401);
 }
 
 /* ---------- storage: one private JSON file + private photos in Vercel Blob ---------- */
 
-export type StoredEntry = { id: string; author: string; day: string; body: string; photos: string[]; created_at: string; updated_at: string };
-export type StoredComment = { id: string; entry_id: string; author: string; body: string; created_at: string };
+export type StoredEntry = { id: string; author: string; day: string; title?: string; body: string; photos: string[]; created_at: string; updated_at: string };
+export type StoredComment = { id: string; entry_id: string; name: string; body: string; created_at: string };
 export type Journal = { version: number; entries: StoredEntry[]; comments: StoredComment[] };
 
 const DATA = "journal/data.json";
@@ -105,6 +96,8 @@ export const photoUrl = (path: string) => `/api/photo?p=${encodeURIComponent(pat
 /** What the browser gets: photo paths swapped for URLs on our own photo route. */
 export const present = (j: Journal) => ({
   version: j.version,
-  entries: j.entries.map((e) => ({ ...e, photos: e.photos.map((p) => ({ path: p, url: photoUrl(p) })) })),
-  comments: j.comments,
+  entries: [...j.entries]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .map((e) => ({ ...e, title: e.title ?? "", photos: e.photos.map((p) => ({ path: p, url: photoUrl(p) })) })),
+  comments: j.comments.map((c) => ({ ...c, name: c.name ?? (c as { author?: string }).author ?? "Someone" })),
 });

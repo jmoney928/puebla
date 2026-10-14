@@ -2,8 +2,8 @@
 import { TRIP_DAYS } from "./people";
 
 export type Photo = { path: string; url: string };
-export type Entry = { id: string; author: string; day: string; body: string; photos: Photo[]; created_at: string; updated_at: string };
-export type Comment = { id: string; entry_id: string; author: string; body: string; created_at: string };
+export type Entry = { id: string; author: string; day: string; title: string; body: string; photos: Photo[]; created_at: string; updated_at: string };
+export type Comment = { id: string; entry_id: string; name: string; body: string; created_at: string };
 export type JournalData = { version: number; entries: Entry[]; comments: Comment[] };
 
 export class ApiError extends Error {
@@ -62,3 +62,7 @@ export function tripToday(): string | null {
 
 export const postedAt = (ts: string) =>
   new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Mexico_City" }).format(new Date(ts));
+
+const NAME_KEY = "puebla-blog-name";
+export const loadName = () => { try { return localStorage.getItem(NAME_KEY) ?? ""; } catch { return ""; } };
+export const saveName = (n: string) => { try { localStorage.setItem(NAME_KEY, n); } catch { /* ignore */ } };

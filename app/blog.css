@@ -1,0 +1,111 @@
+/* Blog: one column of Jack's posts, newest first, with public comments under each */
+:root{--scrim:rgba(8,10,22,.94);--scrim-ink:#F3F5FB}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.btn{font:600 14px var(--body);background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:9px 18px;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:7px 12px;font-size:13px}
+.linkbtn{font:500 12.5px var(--body);background:none;border:0;padding:0;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.linkbtn:hover{color:var(--ink)}
+.linkbtn.danger{color:var(--rosa)}
+.btn:focus-visible,.linkbtn:focus-visible,.photo:focus-visible,.addphoto:focus-within{outline:2px solid var(--rosa);outline-offset:2px}
+.jerror{margin:8px 0 0;color:var(--rosa);font-size:13.5px;font-weight:500}
+.empty{color:var(--muted);font-size:14px;margin:24px 0 0}
+
+textarea,input:not([type="radio"]):not([type="file"]),select{
+  width:100%;font:400 15px/1.5 var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+textarea{resize:vertical;min-height:120px}
+textarea:focus,input:focus,select:focus{outline:2px solid var(--cobalt);outline-offset:-1px;border-color:transparent}
+
+.blog{max-width:760px;margin-inline:auto}
+
+/* header */
+.bhead{padding-block:22px 22px;border-bottom:2px solid var(--ink)}
+.bhead h1{font-size:clamp(64px,12vw,128px);font-weight:900;line-height:.85;text-transform:uppercase;margin-top:6px}
+.bhead h1::after{content:"";display:inline-block;width:.16em;height:.16em;border-radius:50%;background:var(--rosa);margin-left:.06em}
+
+/* composer (Jack only) */
+.composer,.editbox{display:grid;gap:10px;padding:14px;margin-top:22px;background:color-mix(in srgb,var(--marigold) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--marigold) 40%,var(--line));border-radius:8px}
+.editbox{margin-top:10px}
+.ctop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ctop b{font:800 20px var(--display);text-transform:uppercase}
+.ctop select{width:auto;padding:7px 10px;font-size:14px}
+.ctitle{font-weight:600}
+.cactions{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between}
+.btnrow{display:flex;gap:8px}
+.cstatus{margin:0;font:500 12.5px var(--mono);color:var(--muted)}
+.picker{display:grid;gap:8px;min-width:0;flex:1}
+.addphoto{display:inline-flex;align-items:center;gap:6px;font:600 13.5px var(--body);color:var(--ink);cursor:pointer;justify-self:start;padding:7px 10px;border:1px dashed var(--line);border-radius:6px;background:var(--surface)}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px}
+.thumb{position:relative;width:64px;height:64px;border-radius:4px;overflow:hidden;background:var(--grid)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;border:0;background:var(--scrim);color:var(--scrim-ink);font-size:14px;line-height:1;cursor:pointer}
+
+/* empty feed */
+.noposts{margin-top:28px;padding:28px 22px;border:1px dashed var(--line);border-radius:8px;text-align:left}
+.noposts h2{font-size:30px;font-weight:900;text-transform:uppercase}
+.noposts p{margin:4px 0 0;color:var(--muted)}
+
+/* posts */
+.feed{display:grid;gap:22px;margin-top:24px}
+.post{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px 16px;min-width:0}
+.pmeta{display:flex;align-items:flex-start;gap:14px}
+.pday{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;width:58px;padding:6px 0 7px;background:var(--cobalt);color:var(--on-dark);border-radius:6px;line-height:1}
+.pday b{font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.pday span{font:900 30px var(--display)}
+.ptitlewrap{min-width:0;flex:1;display:grid;gap:3px;padding-top:2px}
+.ptitle{font-size:30px;font-weight:800;text-transform:uppercase;line-height:1}
+.ptime{font:500 11.5px var(--mono);color:var(--muted)}
+.eown{display:flex;gap:10px;align-items:baseline;font-size:12.5px;color:var(--muted);flex:none}
+.ebody{margin:14px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.65;max-width:65ch}
+.photos{display:grid;gap:4px;margin-top:14px;border-radius:6px;overflow:hidden}
+.photos.n1{grid-template-columns:1fr}
+.photos.n2{grid-template-columns:1fr 1fr}
+.photos.n3{grid-template-columns:repeat(3,1fr)}
+.photo{padding:0;border:0;background:var(--grid);cursor:zoom-in;display:block;aspect-ratio:1;overflow:hidden}
+.photos.n1 .photo{aspect-ratio:auto;max-height:560px}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* comments */
+.comments{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:6px}
+.chead{font:500 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 2px}
+.comment{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:14px;padding:7px 10px;background:var(--bg);border-radius:6px}
+.comment b{font-weight:700;color:var(--cobalt)}
+.ctext{flex:1 1 60%;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.ctime{font:500 10.5px var(--mono);color:var(--muted)}
+.cdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px}
+.cform{display:flex;gap:6px;margin-top:4px}
+.cform input{padding:7px 10px;font-size:14px}
+.cform .cname{flex:0 0 130px}
+.trap{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0}
+
+/* Jack's login */
+.adminbar{margin-top:48px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.adminbar p{margin:0}
+.adminform{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.adminform label{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.adminform input{width:200px;padding:6px 10px;font-size:14px}
+.adminform .jerror{flex-basis:100%;margin:0}
+
+/* lightbox */
+.lightbox{position:fixed;inset:0;z-index:100;background:var(--scrim);display:grid;place-items:center;padding:56px 16px}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:4px}
+.lbclose,.lbnav{position:absolute;border:0;background:none;color:var(--scrim-ink);cursor:pointer;font-size:40px;line-height:1;padding:8px 14px}
+.lbclose{top:calc(env(safe-area-inset-top,0px) + 6px);right:8px}
+.lbnav.prev{left:4px;top:50%;transform:translateY(-50%)}
+.lbnav.next{right:4px;top:50%;transform:translateY(-50%)}
+.lbcount{position:absolute;top:calc(env(safe-area-inset-top,0px) + 18px);left:18px;font:500 12px var(--mono);color:var(--scrim-ink)}
+.lbopen{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);font:500 12.5px var(--mono);color:var(--scrim-ink)}
+
+@media (max-width:480px){
+  .post{padding:14px}
+  .ptitle{font-size:24px}
+  .pday{width:50px}
+  .pday span{font-size:26px}
+  .pmeta{flex-wrap:wrap}
+  .eown{flex-basis:100%;justify-content:flex-end}
+  .cform{flex-wrap:wrap}
+  .cform .cname{flex:1 1 100%}
+  .cform input:not(.cname){flex:1}
+}

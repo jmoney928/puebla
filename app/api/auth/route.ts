@@ -1,24 +1,21 @@
-import { checkPasscode, clearCookie, currentUser, fail, json, sessionCookie } from "@/lib/server";
-import { isPerson } from "@/lib/people";
+import { adminCookie, checkPassword, clearCookie, fail, hasPassword, isAdmin, json } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
-// Who am I? (used on page load)
+// Is Jack logged in on this device?
 export async function GET(req: Request) {
-  if (!process.env.TRIP_PASSCODE) return fail("TRIP_PASSCODE isn't set on the server.", 500);
-  return json({ user: currentUser(req) });
+  return json({ admin: isAdmin(req) }, 200, { "Cache-Control": "private, no-store" });
 }
 
-// Sign in: { user, pass }
+// Jack logs in: { password }
 export async function POST(req: Request) {
-  if (!process.env.TRIP_PASSCODE) return fail("TRIP_PASSCODE isn't set on the server.", 500);
-  const { user, pass } = await req.json().catch(() => ({}));
-  if (!isPerson(user)) return fail("Pick who you are.");
-  if (!checkPasscode(pass)) return fail("Wrong passcode.", 401);
-  return json({ user }, 200, { "Set-Cookie": sessionCookie(user) });
+  if (!hasPassword()) return fail("JACK_PASSWORD isn't set on the server.", 500);
+  const { password } = await req.json().catch(() => ({}));
+  if (!checkPassword(password)) return fail("Wrong password.", 401);
+  return json({ admin: true }, 200, { "Set-Cookie": adminCookie() });
 }
 
-// Sign out
+// Log out
 export async function DELETE() {
-  return json({ ok: true }, 200, { "Set-Cookie": clearCookie });
+  return json({ admin: false }, 200, { "Set-Cookie": clearCookie });
 }

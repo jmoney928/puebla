@@ -6,7 +6,7 @@ export default function SiteHeader() {
   const path = usePathname();
   const tabs = [
     { href: "/", label: "Itinerary" },
-    { href: "/journal", label: "Journal" },
+    { href: "/blog", label: "Blog" },
   ];
   return (
     <header className="site-head">
