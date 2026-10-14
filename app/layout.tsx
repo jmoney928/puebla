@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Gochi_Hand, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import SiteHeader from "@/components/SiteHeader";
+import ScratchBackground from "@/components/ScratchBackground";
 import "./itinerary.css";
 import "./site.css";
 import "./blog.css";
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable} ${hand.variable}`}>
       <body>
+        <ScratchBackground />
         <SiteHeader />
         <main className="wrap">{children}</main>
       </body>
