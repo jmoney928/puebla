@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { BlobPreconditionFailedError, get, put } from "@vercel/blob";
+import { BlobNotFoundError, BlobPreconditionFailedError, get, head, put } from "@vercel/blob";
 
 /* ---------- responses ---------- */
 
@@ -55,10 +55,26 @@ const DATA = "journal/data.json";
 const empty = (): Journal => ({ version: 0, entries: [], comments: [] });
 
 async function readJournal(fresh: boolean): Promise<{ data: Journal; etag: string | null }> {
+  // For writes, take the ETag from the Blob API (head), not from the download response.
+  // The download goes through the CDN, which can rewrite the ETag (e.g. W/"…" after compression),
+  // and that rewritten value never matches on ifMatch — every write after the first one failed.
+  let etag: string | null = null;
+  if (fresh) {
+    try {
+      etag = (await head(DATA)).etag;
+    } catch (e) {
+      if (e instanceof BlobNotFoundError) return { data: empty(), etag: null };
+      throw e;
+    }
+  }
   const res = await get(DATA, { access: "private", useCache: !fresh });
-  if (!res || res.statusCode !== 200) return { data: empty(), etag: null };
+  if (!res || res.statusCode !== 200) {
+    // head saw the file but the download didn't: never treat that as "empty", or we'd wipe the blog.
+    if (etag) throw new BlobPreconditionFailedError();
+    return { data: empty(), etag: null };
+  }
   const text = await new Response(res.stream).text();
-  return { data: { ...empty(), ...JSON.parse(text) }, etag: res.blob.etag };
+  return { data: { ...empty(), ...JSON.parse(text) }, etag: fresh ? etag : res.blob.etag };
 }
 
 /** Cached read for polling. It can lag a write by up to ~60 s, so clients keep the highest `version` they've seen. */
@@ -70,11 +86,14 @@ export const loadJournal = async () => (await readJournal(false)).data;
  */
 export async function mutate<T>(fn: (j: Journal) => T | Response): Promise<{ data: Journal; result: T } | Response> {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const { data, etag } = await readJournal(true);
-    const result = fn(data);
-    if (result instanceof Response) return result;
-    data.version += 1;
+    let etag: string | null = null;
     try {
+      const read = await readJournal(true);
+      const data = read.data;
+      etag = read.etag;
+      const result = fn(data);
+      if (result instanceof Response) return result;
+      data.version += 1;
       await put(DATA, JSON.stringify(data), {
         access: "private",
         contentType: "application/json",
@@ -85,6 +104,7 @@ export async function mutate<T>(fn: (j: Journal) => T | Response): Promise<{ dat
     } catch (e) {
       const conflict = e instanceof BlobPreconditionFailedError || (!etag && e instanceof Error && /exist/i.test(e.message));
       if (!conflict) throw e;
+      console.warn(`journal write conflict (attempt ${attempt + 1})`);
       await new Promise((r) => setTimeout(r, 150 + Math.random() * 300));
     }
   }
