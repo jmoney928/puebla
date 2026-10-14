@@ -33,11 +33,43 @@ img{max-width:100%}
 @media (max-width:600px){.nudge{top:14px}}
 @media (max-width:360px){.nudge{font-size:16px;margin-left:6px}}
 
-/* ---------- scratch-ticket background: foil over the Mexican flag ---------- */
+/* ---------- secret scratch-off background: plain page colour over the Mexican flag ---------- */
 .scratchbg{position:fixed;inset:0;z-index:-1;pointer-events:none}
 .scratchbg canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 html.scratching,html.scratching *{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23E8B04A' stroke='%23A8701A' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23A8701A' stroke-width='1.2' stroke-dasharray='2 2'/%3E%3Ctext x='16' y='20.5' font-family='Arial' font-weight='700' font-size='12' text-anchor='middle' fill='%237A4A10'%3E%24%3C/text%3E%3C/svg%3E") 16 16,grabbing!important;user-select:none;-webkit-user-select:none}
-.scratchhint{position:fixed;right:16px;bottom:16px;z-index:40;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 12px;border-radius:999px;background:var(--ink);color:var(--bg);font:600 13px var(--body);box-shadow:0 6px 20px rgba(10,15,40,.25)}
-.scratchhint button{border:0;background:none;color:inherit;opacity:.7;font-size:18px;line-height:1;padding:0 4px;cursor:pointer}
-.scratchhint button:hover{opacity:1}
-@media (pointer:coarse){.scratchhint{display:none}}
+
+/* ---------- "Mexican music" switch + the little mariachi band ---------- */
+.navleft{display:flex;align-items:center;gap:14px;min-width:0}
+.music{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 10px 0 8px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font:600 12.5px var(--body);cursor:pointer;white-space:nowrap}
+.music:hover{color:var(--ink)}
+.music:focus-visible{outline:2px solid var(--rosa);outline-offset:2px}
+.music-ico{font-size:16px;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.music-switch{position:relative;width:30px;height:18px;border-radius:999px;background:var(--rest);transition:background-color .2s;flex:none}
+.music-switch span{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .2s}
+.music[aria-checked="true"]{color:var(--ink);border-color:#006847}
+.music[aria-checked="true"] .music-switch{background:#006847}
+.music[aria-checked="true"] .music-switch span{transform:translateX(12px)}
+.music-state{font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;min-width:3ch}
+@media (max-width:620px){.music-label{display:none}.navleft{gap:10px}}
+@media (max-width:420px){.music-state{display:none}.music{padding:0 7px;gap:5px;height:32px}.brand{font-size:22px}}
+
+.band{position:fixed;inset:0;pointer-events:none;z-index:15}
+.player{position:absolute;animation:mar-in .55s cubic-bezier(.2,1.3,.4,1) both}
+.player.l{--from:-160%}.player.r{--from:160%}
+.player svg{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 3px 4px rgba(10,15,40,.25))}
+.player.r svg{transform:scaleX(-1)}
+.bob{transform-origin:50% 100%;animation:mar-bob .75s ease-in-out infinite alternate}
+.trumpet .inst{transform-box:view-box;transform-origin:50px 50px;animation:mar-toot .75s ease-in-out infinite alternate}
+.violin .bow{animation:mar-bow .375s ease-in-out infinite alternate}
+.strum{transform-box:fill-box;transform-origin:0 0;animation:mar-strum .1875s ease-in-out infinite alternate}
+.mnote{position:absolute;top:6%;left:64%;width:16%;color:var(--rosa);opacity:0;animation:mar-note 1.5s linear infinite}
+.mnote svg{display:block;width:100%;height:auto;filter:none}
+.player.r .mnote{left:auto;right:62%}
+.mnote.n2{animation-delay:.75s;color:var(--cobalt)}
+@keyframes mar-in{from{transform:translateX(var(--from));opacity:0}to{transform:none;opacity:1}}
+@keyframes mar-bob{from{transform:rotate(-3deg)}to{transform:rotate(3deg) translateY(-3%)}}
+@keyframes mar-toot{from{transform:rotate(4deg)}to{transform:rotate(-7deg)}}
+@keyframes mar-bow{from{transform:translate(-5px,2.5px)}to{transform:translate(5px,-2.5px)}}
+@keyframes mar-strum{from{transform:rotate(-12deg)}to{transform:rotate(14deg)}}
+@keyframes mar-note{0%{opacity:0;transform:translate(0,0)}20%{opacity:1}100%{opacity:0;transform:translate(16px,-46px) rotate(18deg)}}
+@media (prefers-reduced-motion:reduce){.player,.bob,.inst,.bow,.strum,.mnote{animation:none!important}.mnote{display:none}}

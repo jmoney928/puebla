@@ -2,14 +2,14 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * The whole page background is a scratch-off ticket. Under the foil is the Mexican flag.
+ * Secret: the page background is a scratch-off ticket. It looks exactly like the normal
+ * background until you click and drag on it, which scratches away to reveal the Mexican flag.
  * It only scratches while a mouse (or pen) button is held down and moving. Touch is left
  * alone so phones still scroll normally.
  */
 
 // Things you can click or read closely: pressing on these never starts a scratch.
-const SKIP = "a,button,input,textarea,select,label,summary,[contenteditable],[role=button],.post,.day,.stat,.gridbox,.comment,.cform,.composer,.rpicker,.lightbox,.topnav,.chip,.photo,.nudge,.scratchhint,.fiesta";
-const HINT_KEY = "pj_scratch_hint";
+const SKIP = "a,button,input,textarea,select,label,summary,[contenteditable],[role=button],.post,.day,.stat,.gridbox,.comment,.cform,.composer,.rpicker,.lightbox,.topnav,.chip,.photo,.nudge,.fiesta";
 
 function isDark() {
   const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
@@ -59,39 +59,15 @@ function drawFlag(ctx: CanvasRenderingContext2D, w: number, h: number, dark: boo
   ctx.fillRect(0, 0, w, h);
 }
 
-/** The foil: brushed silver (or gunmetal in dark mode) with sparkle and "¡RASPA AQUÍ!" printed on it. */
-function drawFoil(ctx: CanvasRenderingContext2D, w: number, h: number, dark: boolean) {
-  const g = ctx.createLinearGradient(0, 0, w, h);
-  if (dark) { g.addColorStop(0, "#1d2440"); g.addColorStop(0.5, "#2a3254"); g.addColorStop(1, "#1a2038"); }
-  else { g.addColorStop(0, "#dfe2e8"); g.addColorStop(0.45, "#f1f2f5"); g.addColorStop(0.55, "#e9ebef"); g.addColorStop(1, "#d6d9e0"); }
-  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-
-  // brushed-metal streaks + glitter
-  let seed = 7;
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < (w * h) / 900; i++) {
-    ctx.fillStyle = dark ? `rgba(255,255,255,${rnd() * 0.06})` : `rgba(${rnd() < 0.5 ? "255,255,255" : "150,155,170"},${rnd() * 0.35})`;
-    ctx.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 1.5, 1 + rnd() * 1.5);
-  }
-
-  // ticket print: diagonal rows of RASPA AQUÍ / SCRATCH HERE
-  ctx.save();
-  ctx.translate(w / 2, h / 2); ctx.rotate(-Math.PI / 9);
-  ctx.font = "700 15px ui-monospace, Menlo, monospace";
-  ctx.fillStyle = dark ? "rgba(255,255,255,.06)" : "rgba(40,50,80,.07)";
-  const diag = Math.hypot(w, h);
-  for (let y = -diag / 2, row = 0; y < diag / 2; y += 46, row++) {
-    const text = row % 2 ? "★ ¡RASPA AQUÍ! ★ SCRATCH HERE " : "SCRATCH HERE ★ ¡RASPA Y GANA! ★ ";
-    const tw = ctx.measureText(text).width;
-    for (let x = -diag / 2 - (row % 2) * 60; x < diag / 2; x += tw) ctx.fillText(text, x, y);
-  }
-  ctx.restore();
+/** The "foil" is just the page's normal background colour, so nobody can tell there's anything under it. */
+function drawFoil(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#F3F5FB";
+  ctx.fillRect(0, 0, w, h);
 }
 
 export default function ScratchBackground() {
   const flagRef = useRef<HTMLCanvasElement>(null);
   const foilRef = useRef<HTMLCanvasElement>(null);
-  const [hint, setHint] = useState(false);
   const [scratching, setScratching] = useState(false);
 
   useEffect(() => {
@@ -99,7 +75,7 @@ export default function ScratchBackground() {
     const fctx = foil.getContext("2d")!, gctx = flag.getContext("2d")!;
     let w = 0, h = 0, dpr = 1, dark = false;
     let last: { x: number; y: number } | null = null;
-    let down = false, scratched = 0;
+    let down = false;
 
     const paint = (keep: boolean) => {
       const nw = window.innerWidth, nh = window.innerHeight, ndpr = Math.min(window.devicePixelRatio || 1, 2), ndark = isDark();
@@ -114,7 +90,7 @@ export default function ScratchBackground() {
       gctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawFlag(gctx, w, h, dark);
       fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.globalCompositeOperation = "source-over";
       if (old) { fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.drawImage(old, 0, 0, foil.width, foil.height); fctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
-      else drawFoil(fctx, w, h, dark);
+      else drawFoil(fctx, w, h);
     };
 
     const scratch = (x: number, y: number) => {
@@ -143,15 +119,10 @@ export default function ScratchBackground() {
       if (!(e.buttons & 1)) { down = false; last = null; setScratching(false); return; }
       setScratching(true);
       scratch(e.clientX, e.clientY);
-      if (++scratched === 12) { setHint(false); try { localStorage.setItem(HINT_KEY, "1"); } catch { /* ignore */ } }
     };
     const onUp = () => { down = false; last = null; setScratching(false); };
 
     paint(false);
-    let seenHint = false;
-    try { seenHint = !!localStorage.getItem(HINT_KEY); } catch { /* ignore */ }
-    const fine = window.matchMedia("(pointer: fine)").matches;
-    if (!seenHint && fine) setHint(true);
 
     let t = 0;
     const onResize = () => { clearTimeout(t); t = window.setTimeout(() => paint(true), 120); };
@@ -186,12 +157,6 @@ export default function ScratchBackground() {
         <canvas ref={flagRef} />
         <canvas ref={foilRef} />
       </div>
-      {hint && (
-        <div className="scratchhint" role="note">
-          <span aria-hidden="true">🪙</span> Click and drag on the background to scratch
-          <button type="button" aria-label="Hide tip" onClick={() => { setHint(false); try { localStorage.setItem(HINT_KEY, "1"); } catch { /* ignore */ } }}>×</button>
-        </div>
-      )}
     </>
   );
 }
