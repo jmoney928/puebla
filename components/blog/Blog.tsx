@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, type Comment, type JournalData } from "@/lib/client";
+import { api, deviceId, loadName, type Comment, type JournalData } from "@/lib/client";
+import type { ReactionKey } from "@/lib/reactions";
 import Composer from "./Composer";
 import PostCard from "./PostCard";
 import Lightbox from "./Lightbox";
@@ -12,6 +13,8 @@ export default function Blog() {
   const [error, setError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
   const version = useRef(-1);
+  const [me, setMe] = useState("");
+  useEffect(() => setMe(deviceId()), []);
 
   // Reads come from a cached copy that can lag a write by up to a minute, so never step back to an older version.
   const apply = useCallback((d: JournalData) => {
@@ -35,6 +38,27 @@ export default function Blog() {
     window.addEventListener("focus", tick);
     return () => { window.clearInterval(id); window.removeEventListener("focus", tick); };
   }, [refresh]);
+
+  // Reactions show up instantly, then the server's copy replaces them (or puts things back if it failed).
+  const react = useCallback(async (target: string, key: ReactionKey) => {
+    if (!me) return;
+    const name = loadName();
+    let before: JournalData | null = null;
+    setData((d) => {
+      if (!d) return d;
+      before = d;
+      const forTarget = { ...(d.reactions[target] ?? {}) };
+      const who = forTarget[key] ?? [];
+      forTarget[key] = who.some((r) => r.d === me) ? who.filter((r) => r.d !== me) : [...who, { d: me, n: name }];
+      return { ...d, reactions: { ...d.reactions, [target]: forTarget } };
+    });
+    try {
+      apply(await api<JournalData>("/api/reactions", { method: "POST", body: { target, key, device: me, name } }));
+    } catch (e) {
+      if (before) setData(before);
+      setError(e instanceof Error ? e.message : "Couldn’t save that reaction.");
+    }
+  }, [me, apply]);
 
   const commentsFor = useMemo(() => {
     const m: Record<string, Comment[]> = {};
@@ -70,6 +94,9 @@ export default function Blog() {
               key={e.id}
               entry={e}
               comments={commentsFor[e.id] ?? []}
+              reactions={data.reactions ?? {}}
+              me={me}
+              onReact={react}
               admin={admin}
               onSaved={apply}
               onOpenPhoto={(i) => setLightbox({ urls: e.photos.map((x) => x.url), index: i })}

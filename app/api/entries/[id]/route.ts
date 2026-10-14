@@ -38,6 +38,8 @@ export async function DELETE(req: Request, { params }: Ctx) {
     if (!e) return fail("That post doesn’t exist anymore.", 404);
     photos = e.photos;
     j.entries = j.entries.filter((x) => x.id !== id);
+    j.comments.filter((c) => c.entry_id === id).forEach((c) => delete j.reactions[c.id]);
+    delete j.reactions[id];
     j.comments = j.comments.filter((c) => c.entry_id !== id);
   });
   if (out instanceof Response) return out;

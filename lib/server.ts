@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import type { ReactionMap } from "./reactions";
 import { BlobNotFoundError, BlobPreconditionFailedError, get, head, put } from "@vercel/blob";
 
 /* ---------- responses ---------- */
@@ -49,10 +50,10 @@ export function guardAdmin(req: Request): Response | null {
 
 export type StoredEntry = { id: string; author: string; day: string; title?: string; body: string; photos: string[]; created_at: string; updated_at: string };
 export type StoredComment = { id: string; entry_id: string; parent_id?: string; name: string; body: string; created_at: string };
-export type Journal = { version: number; entries: StoredEntry[]; comments: StoredComment[] };
+export type Journal = { version: number; entries: StoredEntry[]; comments: StoredComment[]; reactions: ReactionMap };
 
 const DATA = "journal/data.json";
-const empty = (): Journal => ({ version: 0, entries: [], comments: [] });
+const empty = (): Journal => ({ version: 0, entries: [], comments: [], reactions: {} });
 
 async function readJournal(fresh: boolean): Promise<{ data: Journal; etag: string | null }> {
   // For writes, take the ETag from the Blob API (head), not from the download response.
@@ -120,4 +121,5 @@ export const present = (j: Journal) => ({
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map((e) => ({ ...e, title: e.title ?? "", photos: e.photos.map((p) => ({ path: p, url: photoUrl(p) })) })),
   comments: j.comments.map((c) => ({ ...c, name: c.name ?? (c as { author?: string }).author ?? "Someone" })),
+  reactions: j.reactions ?? {},
 });

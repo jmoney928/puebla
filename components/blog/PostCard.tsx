@@ -3,13 +3,16 @@ import { useState } from "react";
 import { TRIP_DAYS } from "@/lib/people";
 import { api, loadName, postedAt, saveName, type Comment, type Entry, type JournalData } from "@/lib/client";
 import PhotoPicker, { useDraftPhotos } from "./PhotoPicker";
+import Reactions from "./Reactions";
+import type { ReactionKey, ReactionMap } from "@/lib/reactions";
 
 type Props = {
   entry: Entry; comments: Comment[]; admin: boolean;
+  reactions: ReactionMap; me: string; onReact: (target: string, key: ReactionKey) => void;
   onSaved: (d: JournalData) => void; onOpenPhoto: (i: number) => void;
 };
 
-export default function PostCard({ entry, comments, admin, onSaved, onOpenPhoto }: Props) {
+export default function PostCard({ entry, comments, admin, reactions, me, onReact, onSaved, onOpenPhoto }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [title, setTitle] = useState(entry.title);
@@ -134,6 +137,8 @@ export default function PostCard({ entry, comments, admin, onSaved, onOpenPhoto 
         </>
       )}
 
+      {!editing && <Reactions target={entry.id} map={reactions[entry.id]} me={me} onReact={onReact} />}
+
       {error && <p className="jerror" role="alert">{error}</p>}
 
       <section className="comments" aria-label="Comments">
@@ -145,10 +150,13 @@ export default function PostCard({ entry, comments, admin, onSaved, onOpenPhoto 
               <b>{c.name}</b>
               <span className="ctext">{c.body}</span>
               <span className="ctime">{postedAt(c.created_at)}</span>
-              <button type="button" className="creply" onClick={() => startReply(t.id, c.name)} disabled={busy}>Reply</button>
-              {admin && (
-                <button type="button" className="cdel" aria-label={isReply ? `Delete reply from ${c.name}` : `Delete comment from ${c.name} and its replies`} onClick={() => removeComment(c.id)} disabled={busy}>×</button>
-              )}
+              <span className="cacts">
+                <Reactions target={c.id} map={reactions[c.id]} me={me} onReact={onReact} small />
+                <button type="button" className="creply" onClick={() => startReply(t.id, c.name)} disabled={busy}>Reply</button>
+                {admin && (
+                  <button type="button" className="cdel" aria-label={isReply ? `Delete reply from ${c.name}` : `Delete comment from ${c.name} and its replies`} onClick={() => removeComment(c.id)} disabled={busy}>×</button>
+                )}
+              </span>
             </div>
           );
           return (

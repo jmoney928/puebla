@@ -117,3 +117,28 @@ textarea:focus,input:focus,select:focus{outline:2px solid var(--cobalt);outline-
   .cform .cname{flex:1 1 100%}
   .cform input:not(.cname){flex:1}
 }
+
+/* reactions: chips under each post and on each comment, plus a picker */
+.reacts{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
+.reacts.small{display:inline-flex;gap:4px;margin:0}
+.cacts{display:inline-flex;align-items:center;gap:8px;margin-left:auto}
+.rchip,.radd{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font:600 13px var(--body);cursor:pointer}
+.rchip[aria-pressed="true"]{border-color:var(--cobalt);background:color-mix(in srgb,var(--cobalt) 12%,var(--surface));color:var(--cobalt)}
+.rchip:hover,.radd:hover{border-color:var(--muted);color:var(--ink)}
+.radd svg{width:18px;height:18px}
+.reacts.small .rchip,.reacts.small .radd{height:24px;padding:0 7px;font-size:12px;gap:3px}
+.reacts.small .radd{border-color:transparent;background:none;padding:0 3px}
+.reacts.small .radd svg{width:16px;height:16px}
+.remoji{font-size:16px;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.reacts.small .remoji{font-size:13px}
+.mxflag{width:19px;height:13px;border-radius:2px;box-shadow:0 0 0 .5px rgba(0,0,0,.25);flex:none}
+.reacts.small .mxflag{width:16px;height:11px}
+.rpicker{position:fixed;z-index:60;display:grid;grid-template-columns:repeat(9,36px);gap:2px;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px rgba(10,15,40,.18)}
+.rpick{width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:10px;background:none;cursor:pointer;transition:transform .12s}
+.rpicker .rpick .remoji{font-size:22px}
+.rpicker .rpick .mxflag{width:24px;height:16px}
+.rpick:hover{background:var(--bg);transform:scale(1.15)}
+.rpick[aria-pressed="true"]{background:color-mix(in srgb,var(--cobalt) 14%,transparent)}
+.rchip:focus-visible,.radd:focus-visible,.rpick:focus-visible{outline:2px solid var(--rosa);outline-offset:2px}
+@media (max-width:480px){.rpicker{grid-template-columns:repeat(5,40px)}.rpick{width:40px;height:40px}}
+@media (prefers-reduced-motion:reduce){.rpick{transition:none}.rpick:hover{transform:none}}

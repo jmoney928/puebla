@@ -1,10 +1,11 @@
 "use client";
 import { TRIP_DAYS } from "./people";
+import type { ReactionMap } from "./reactions";
 
 export type Photo = { path: string; url: string };
 export type Entry = { id: string; author: string; day: string; title: string; body: string; photos: Photo[]; created_at: string; updated_at: string };
 export type Comment = { id: string; entry_id: string; parent_id?: string; name: string; body: string; created_at: string };
-export type JournalData = { version: number; entries: Entry[]; comments: Comment[] };
+export type JournalData = { version: number; entries: Entry[]; comments: Comment[]; reactions: ReactionMap };
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -66,3 +67,16 @@ export const postedAt = (ts: string) =>
 const NAME_KEY = "puebla-blog-name";
 export const loadName = () => { try { return localStorage.getItem(NAME_KEY) ?? ""; } catch { return ""; } };
 export const saveName = (n: string) => { try { localStorage.setItem(NAME_KEY, n); } catch { /* ignore */ } };
+
+/** A random id for this phone/browser, so a reaction can be taken back. Not tied to anything else. */
+const DEVICE_KEY = "pj_device";
+let memDevice = "";
+export function deviceId(): string {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem(DEVICE_KEY, id); }
+    return id;
+  } catch {
+    return (memDevice ||= `m${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`);
+  }
+}
